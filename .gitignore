@@ -10,6 +10,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+data/MNIST/
 develop-eggs/
 dist/
 downloads/

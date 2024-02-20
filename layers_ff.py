@@ -13,7 +13,7 @@ class FFLinearLayer(nn.Linear):
     :param bias: whether to use the bias or not
     """
 
-    def __init__(self, in_features, out_features, num_epoch, threshold=6.5, device="cpu", bias=True):
+    def __init__(self, in_features, out_features, num_epoch=100, threshold=6.5, device="cpu", bias=True):
         super().__init__(in_features, out_features, bias, device)
         self.relu = nn.ReLU()
         self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
@@ -87,19 +87,19 @@ class FFConvLayer(nn.Conv2d):
 
 
 # Instantiate the FFLinearLayer
-layer = FFLinearLayer(in_features=1000, out_features=2, num_epoch=10)
-
-# Generate random input data (adjusted for the input feature as needed)
-input_data_p = torch.randn(10, 1000)  # Example: 10 samples, 1000 features
-input_data_n = torch.randn(10, 1000)  # Example: 10 samples, 1000 features
-
-
-# Forward pass, for the positive and negative samples
-output_p = layer(input_data_p)
-output_n = layer(input_data_n)
-
-print("Output_p shape:", output_p.shape)  # Shape Should be (data_sample, output_features)
-print("Output_n shape:", output_n.shape)  # Shape Should be (data_sample, output_features)
-
-print("Training the layer...", layer.forward_forward(input_data_p, input_data_n))
+# layer = FFLinearLayer(in_features=1000, out_features=2, num_epoch=10)
+#
+# # Generate random input data (adjusted for the input feature as needed)
+# input_data_p = torch.randn(10, 1000)  # Example: 10 samples, 1000 features
+# input_data_n = torch.randn(10, 1000)  # Example: 10 samples, 1000 features
+#
+#
+# # Forward pass, for the positive and negative samples
+# output_p = layer(input_data_p)
+# output_n = layer(input_data_n)
+#
+# print("Output_p shape:", output_p.shape)  # Shape Should be (data_sample, output_features)
+# print("Output_n shape:", output_n.shape)  # Shape Should be (data_sample, output_features)
+#
+# print("Training the layer...", layer.forward_forward(input_data_p, input_data_n))
 
