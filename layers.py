@@ -34,8 +34,8 @@ class FFLinearLayer(nn.Linear):
     # @staticmethod
     def goodness_score(self, x_positive, x_negative):
         """
-            compute the goodness score.
-            Math: \sum_{y}^2
+            compute the goodness score, meaning square up the activation of each neuron in the layer and square them up.
+            Math: sum_{activations}^2
         :arg x_positive: the positive sample
         :arg x_negative: the negative sample
         :return: the positive and negative goodness score
@@ -45,6 +45,14 @@ class FFLinearLayer(nn.Linear):
         return positive_goodness, negative_goodness
 
     def goodness_loss(self, positive_goodness, negative_goodness, sigmoid=True):
+        """
+            Compute the goodness loss, this is the loss function for the goodness score.
+            Math: L = sigmoid(-goodness_positive + threshold) + sigmoid(goodness_negative - threshold)
+        :param positive_goodness: the positive goodness score
+        :param negative_goodness: the negative goodness score
+        :param sigmoid: whether to use the sigmoid function or not
+        :return: the goodness loss
+        """
         errors = torch.cat([-positive_goodness + self.threshold, negative_goodness - self.threshold])
         loss = torch.sigmoid(errors).mean() if sigmoid else torch.log(1 + torch.exp(errors)).mean()
         return loss
