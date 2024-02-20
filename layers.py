@@ -5,6 +5,12 @@ import torch.nn as nn
 class FFLinearLayer(nn.Linear):
     """
     A simple class for the forward forward layer .
+    :param in_features: the number of input features
+    :param out_features: the number of output features
+    :param num_epoch: the number of epochs to train the layer
+    :param threshold: the threshold for the goodness score
+    :param device: the device to run the layer on
+    :param bias: whether to use the bias or not
     """
 
     def __init__(self, in_features, out_features, num_epoch, threshold=6.5, device="cpu", bias=True):
@@ -57,7 +63,7 @@ class FFLinearLayer(nn.Linear):
         loss = torch.sigmoid(errors).mean() if sigmoid else torch.log(1 + torch.exp(errors)).mean()
         return loss
 
-    def train(self, x_positive, x_negative):
+    def forward_forward(self, x_positive, x_negative):
         # the forward forward paradigm happens here
         for epoch in range(self.num_epoch):
             # perform a forward pass and compute the goodness score
@@ -95,5 +101,5 @@ output_n = layer(input_data_n)
 print("Output_p shape:", output_p.shape)  # Shape Should be (data_sample, output_features)
 print("Output_n shape:", output_n.shape)  # Shape Should be (data_sample, output_features)
 
-print("Training the layer...", layer.train(input_data_p, input_data_n))
+print("Training the layer...", layer.forward_forward(input_data_p, input_data_n))
 
