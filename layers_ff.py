@@ -96,12 +96,62 @@ class FFConvLayer(nn.Conv2d):
         # convolutional layers focused on the core operation (convolution). Avoid adding activation functions etc
 
     def forward(self, input):
+        """
+            Perform a forward pass on the input data.
+            perform a layer-wise batch normalization and then apply the ReLU activation function for the forward pass
+
+        :param input: the input data
+        :return: the output data
+        """
+        # print(x.shape, self.weight.shape, self.bias.shape)
+        input_ = input / (input.norm(2, 1, keepdim=True) + 1e-4)
+        #
         # Calculate mean and variance of the kernel
         if self.drop:
-            input = self.dropout(input)
-
+            input_ = self.dropout(input_)
         # Perform the convolution
-        return self._conv_forward(input, self.bias, self.stride, self.padding)
+        return self._conv_forward(input_, self.weight, self.bias)
+
+    def goodness_score(self, x_positive, x_negative):
+        """
+            compute the goodness score, meaning square up the activation of each neuron in the layer and square them up.
+            Math: sum_{activations}^2
+        :arg x_positive: the positive sample
+        :arg x_negative: the negative sample
+        :return: the positive and negative goodness score
+        """
+        positive_goodness = self.forward(x_positive).pow(2).mean(1)
+        negative_goodness = self.forward(x_negative).pow(2).mean(1)
+        return positive_goodness, negative_goodness
+
+    def goodness_loss(self, positive_goodness, negative_goodness, sigmoid=True):
+        """
+            Compute the goodness loss, this is the loss function for the goodness score.
+            Math: L = sigmoid(-goodness_positive + threshold) + sigmoid(goodness_negative - threshold)
+        :param positive_goodness: the positive goodness score
+        :param negative_goodness: the negative goodness score
+        :param sigmoid: whether to use the sigmoid function or not
+        :return: the goodness loss
+        """
+        errors = torch.cat([-positive_goodness + self.threshold, negative_goodness - self.threshold])
+        loss = torch.sigmoid(errors).mean() if sigmoid else torch.log(1 + torch.exp(errors)).mean()
+        return loss
+
+    def forward_forward(self, x_positive, x_negative):
+        # the forward forward paradigm happens here
+        for epoch in range(self.num_epoch):
+            # perform a forward pass and compute the goodness score
+            positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
+            # compute the goodness loss with respect to the goodness score and the threshold
+            loss = self.goodness_loss(positive_goodness, negative_goodness)
+            # empty the gradient perform a backward pass(local descent) and update the weights and biases
+            self.opti.zero_grad()
+            loss.backward()
+            self.opti.step()
+        return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+
+
+
 
 # Instantiate the FFLinearLayer
 # layer = FFLinearLayer(in_features=1000, out_features=2, num_epoch=10)
