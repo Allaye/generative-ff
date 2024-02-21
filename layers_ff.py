@@ -1,3 +1,8 @@
+"""
+Code for research work generative forward forward neural networks "
+Date 19/02/2024.
+Author: Kolade Gideon *Allaye*
+"""
 import torch
 import torch.nn as nn
 
@@ -14,7 +19,7 @@ class FFLinearLayer(nn.Linear):
     """
 
     def __init__(self, in_features, out_features, num_epoch=100, threshold=6.5, device="cpu", bias=True):
-        super().__init__(in_features, out_features, bias, device)
+        super(FFLinearLayer, self).__init__(in_features, out_features, bias, device)
         self.relu = nn.ReLU()
         self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
         self.loss = nn.CrossEntropyLoss()
@@ -78,13 +83,25 @@ class FFLinearLayer(nn.Linear):
 
 
 class FFConvLayer(nn.Conv2d):
-    def __init__(self):
-        super().__init__()
-        pass
+    def __init__(self, in_channels, out_channels, kernel_size, threshold=5, drop=False, droprate=0.5, stride=1,
+                 padding=0):
+        super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding)
+        # Initialize weights using Xavier/Glorot initialization
+        nn.init.xavier_uniform_(self.weight)
+        # Initialize biases to zeros
+        nn.init.zeros_(self.bias)
+        self.dropout = nn.Dropout2d(droprate)
+        self.threshold = threshold
+        # no convolution operation are performed directly on the layer, this is for flexibility
+        # convolutional layers focused on the core operation (convolution). Avoid adding activation functions etc
 
-    def forward(self, x):
-        pass
+    def forward(self, input):
+        # Calculate mean and variance of the kernel
+        if self.drop:
+            input = self.dropout(input)
 
+        # Perform the convolution
+        return self._conv_forward(input, self.bias, self.stride, self.padding)
 
 # Instantiate the FFLinearLayer
 # layer = FFLinearLayer(in_features=1000, out_features=2, num_epoch=10)
@@ -103,3 +120,7 @@ class FFConvLayer(nn.Conv2d):
 #
 # print("Training the layer...", layer.forward_forward(input_data_p, input_data_n))
 
+# x = torch.randn(10, 3, 32, 32)
+# x_ = x / (x.norm(2, 1, keepdim=True) + 1e-4)
+# print(x_, '.....')
+# print(x)
