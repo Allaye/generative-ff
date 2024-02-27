@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 import torch
 import cv2 as cv
 import matplotlib.pyplot as plt
 
 
 def one_hot_encode_label_on_image(x, labels, num_classes):
+=======
+def one_hot_encode(x, num_classes):
+>>>>>>> aa2505d902724af17fa060ac999d9cfa82e81481
     """
     One hot encode the target variable.
     :param x: the input data
@@ -17,6 +21,7 @@ def one_hot_encode_label_on_image(x, labels, num_classes):
     return x_
 
 
+<<<<<<< HEAD
 def overlay_y_on_x(x, y):
     """Replace the first 10 pixels of data [x] with one-hot-encoded label [y]
     """
@@ -35,3 +40,13 @@ def visualize_sample(data, name='', idx=0):
     plt.title(name)
     plt.imshow(reshaped, cmap="gray")
     plt.show()
+=======
+def split_image(img):
+    height, width, channel = img.shape
+    half_width = width // 2
+
+    data = img[:, :half_width]
+    label = img[:, half_width:]
+
+    return data, label
+>>>>>>> aa2505d902724af17fa060ac999d9cfa82e81481
