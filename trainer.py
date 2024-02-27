@@ -1,5 +1,5 @@
 import torch
-from discriminator_ff import FFDenseDiscriminator
+from discriminators_ff import FFDenseDiscriminator
 
 
 def trainer():

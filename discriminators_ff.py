@@ -1,12 +1,12 @@
 """
-Code for research work generative forward forward neural networks "
+Code for research work generative forward-forward neural networks "
 Date 20/02/2024.
-Author: Kolade Gideon *Allaye*
+Author: Kolade-Gideon *Allaye*
 """
 import torch
 import torch.nn as nn
-from layers_ff import FFLinearLayer
-from utils import one_hot_encode
+from layers_ff import FFLinearLayer, FFConvLayer
+from utils import one_hot_encode_label_on_image, overlay_y_on_x, visualize_sample
 
 
 class BaseDiscriminatorBlock(nn.Module):
@@ -16,33 +16,22 @@ class BaseDiscriminatorBlock(nn.Module):
 
 
 class FFConvDiscriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        pass
-
-    def forward(self, x):
-        pass
-
-
-class FFDenseDiscriminator(nn.Module):
-    """
-    The feed forward dense discriminator.
-    """
-
-    def __init__(self, dimension, num_epoch, output_dim=2):
+    def __init__(self, dimension, output_dim=10):
         super().__init__()
         self.layers = []
-        self.num_epoch = num_epoch
         self.output_dim = output_dim
         for dim in range(len(dimension) - 1):
-            self.layers += [FFLinearLayer(dimension[dim], dimension[dim + 1])]
-            # self.layer.append(nn.Linear(dimension[dim], dimension[dim + 1]))
+            self.layers.append(FFConvLayer(dimension[dim], dimension[dim + 1], 5))
+        print(self.layers)
 
+    def predict(self, x):
+        pass
+    @overload
     def predict(self, x):
         goodness_score_per_label = []
         for label in range(self.output_dim):
             # perform one hot encoding#
-            encoded = one_hot_encode(x, label)
+            encoded = overlay_y_on_x(x, label)
             goodness = []
             for layer in self.layers:
                 encoded = layer(encoded)
@@ -58,48 +47,126 @@ class FFDenseDiscriminator(nn.Module):
             print('training layer', i, '...')
             x_positive, x_negative = layer.forward_forward(x_positive, x_negative)
 
-# from torchvision.datasets import MNIST
-# from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
-# from torch.utils.data import DataLoader
+
+class FFDenseDiscriminator(nn.Module):
+    """
+    The feed forward dense discriminator.
+    """
+
+    def __init__(self, dimension, num_epoch, output_dim):
+        super().__init__()
+        self.layers = []
+        self.num_epoch = num_epoch
+        self.output_dim = output_dim
+        for dim in range(len(dimension) - 1):
+            self.layers += [FFLinearLayer(dimension[dim], dimension[dim + 1])]
+            # self.layer.append(nn.Linear(dimension[dim], dimension[dim + 1]))
+        # print(self.layers)
+
+    def predict(self, x):
+        goodness_score_per_label = []
+        for label in range(self.output_dim):
+            # perform one hot encoding#
+            encoded = overlay_y_on_x(x, label)
+            goodness = []
+            for layer in self.layers:
+                encoded = layer(encoded)
+                goodness += [encoded.pow(2).mean(1)]
+            goodness_score_per_label += [sum(goodness).unsqueeze(1)]
+        goodness_score_per_label = torch.cat(goodness_score_per_label, 1)
+        return goodness_score_per_label.argmax(1)
+
+    def train(self, x_positive, x_negative):
+        for i, layer in enumerate(self.layers):
+            # x_positive = layer(x_positive)
+            # x_negative = layer(x_negative)
+            print('training layer', i, '...')
+            x_positive, x_negative = layer.forward_forward(x_positive, x_negative)
+
+
+from torchvision.datasets import MNIST
+from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
+from torch.utils.data import DataLoader
+
+
+def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
+    transform = Compose([
+        ToTensor(),
+        Normalize((0.1307,), (0.3081,)),
+        Lambda(lambda x: torch.flatten(x))])
+
+    train_loader = DataLoader(
+        MNIST('./data/', train=True,
+              download=True,
+              transform=transform),
+        batch_size=train_batch_size, shuffle=True)
+
+    test_loader = DataLoader(
+        MNIST('./data/', train=False,
+              download=True,
+              transform=transform),
+        batch_size=test_batch_size, shuffle=False)
+
+    return train_loader, test_loader
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #
 #
-# def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
-#     transform = Compose([
-#         ToTensor(),
-#         Normalize((0.1307,), (0.3081,)),
-#         Lambda(lambda x: torch.flatten(x))])
+if __name__ == "__main__":
+    torch.manual_seed(1234)
+    train_loader, test_loader = MNIST_loaders()
+
+    # net = FFDenseDiscriminator([784, 500, 500], 100, 10)
+    net = FFConvDiscriminator([1, 6, 16, 120]).cuda()
+
+    x, y = next(iter(train_loader))
+    # print(x.shape, y[0])
+    x, y = x.cuda(), y.cuda()
+    x_pos = overlay_y_on_x(x, y)
+    rnd = torch.randperm(x.size(0))
+    x_neg = overlay_y_on_x(x, y[rnd])
+
+    for data, name in zip([x, x_pos, x_neg], ['orig', 'pos', 'neg']):
+        visualize_sample(data, name)
+    x_pos = x_pos.reshape(-1, 1, 28, 28)
+    x_neg = x_neg.reshape(-1, 1, 28, 28)
+    x_neg = x_neg.to(device)
+    #   x
+    #     # def overlay_y_on_x(x, y):
+    #     #     """Replace the first 10 pixels of data [x] with one-hot-encoded label [y]
+    #     #     """
+    #     #     x_ = x.clone()
+    #     #     x_[:, :10] *= 0.0
+    #     #     x_[range(x.shape[0]), y] = x.max()
+    #     #     return x_
+    #     #
+    #     # def visualize_sample(data, name='', idx=0):
+    #     #     reshaped = data[idx].cpu().reshape(28, 28)
+    #     #     plt.figure(figsize=(4, 4))
+    #     #     plt.title(name)
+    #     #     plt.imshow(reshaped, cmap="gray")
+    #     #     plt.show()
+    #
+    # print('data shape,', x_pos.shape, x_neg.shape)
+    net.train(x_pos, x_neg)
 #
-#     train_loader = DataLoader(
-#         MNIST('./data/', train=True,
-#               download=True,
-#               transform=transform),
-#         batch_size=train_batch_size, shuffle=True)
+#     print('train error:', 1.0 - net.predict(x).eq(y).float().mean().item())
 #
-#     test_loader = DataLoader(
-#         MNIST('./data/', train=False,
-#               download=True,
-#               transform=transform),
-#         batch_size=test_batch_size, shuffle=False)
+#     x_te, y_te = next(iter(test_loader))
+#     x_te, y_te = x_te.cuda(), y_te.cuda()
 #
-#     return train_loader, test_loader
+#     print('test error:', 1.0 - net.predict(x_te).eq(y_te).float().mean().item())
 #
+# # from torch.nn import functional as F
+# #
+# # F.one_hot(torch.tensor([0, 1, 2, 0]), num_classes=3)
+# net = FFDenseDiscriminator([784, 784, 500, 500, 500, 784, 500], 100, 10)
+# # train error: 0.7913400083780289
+# # test error: 0.789400011301040
 #
-# # Instantiate the FFDenseDiscriminator
-# dense_discriminator = FFDenseDiscriminator([784, 500, 500], 100)
-#
-# # # Generate random input data (adjusted for the input feature as needed)
-# train_loader, test_loader = MNIST_loaders()
-# x, y = next(iter(train_loader))
-# x, y = x, y
-# x_pos = one_hot_encode(x, y)
-# rnd = torch.randperm(x.size(0))
-# x_neg = one_hot_encode(x, y[rnd])
-#
-# dense_discriminator.train(x_pos, x_neg)
-#
-# print('train error:', 1.0 - dense_discriminator.predict(x).eq(y).float().mean().item())
-#
-# x_te, y_te = next(iter(test_loader))
-# x_te, y_te = x_te, y_te
-#
-# print('test error:', 1.0 - dense_discriminator.predict(x_te).eq(y_te).float().mean().item())
+# # net = FFDenseDiscriminator([784, 500, 500], 100, 10)
+# # train error: 0.8306400030851364
+# # test error: 0.8275000005960464
+
+# net = FFConvDiscriminator([3, 6, 16, 120])

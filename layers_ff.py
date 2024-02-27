@@ -5,11 +5,11 @@ Author: Kolade Gideon *Allaye*
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class FFLinearLayer(nn.Linear):
     """
-    A simple class for the forward forward layer .
+    A simple class for the forward-forward layer .
     :param in_features: the number of input features
     :param out_features: the number of output features
     :param num_epoch: the number of epochs to train the layer
@@ -18,7 +18,7 @@ class FFLinearLayer(nn.Linear):
     :param bias: whether to use the bias or not
     """
 
-    def __init__(self, in_features, out_features, num_epoch=100, threshold=6.5, device="cpu", bias=True):
+    def __init__(self, in_features, out_features, num_epoch=1000, threshold=6.5, device="cuda", bias=True):
         super(FFLinearLayer, self).__init__(in_features, out_features, bias, device)
         self.relu = nn.ReLU()
         self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
@@ -82,7 +82,8 @@ class FFLinearLayer(nn.Linear):
 
 
 class FFConvLayer(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=100, threshold=5, drop=False, droprate=0.5, stride=1,
+    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=100, threshold=5, drop=False, droprate=0.5,
+                 stride=1,
                  padding=0):
         super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding)
         # Initialize weights using Xavier/Glorot initialization
@@ -94,13 +95,13 @@ class FFConvLayer(nn.Conv2d):
         self.threshold = threshold
         self.num_epoch = num_epoch
         self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
-        # no convolution operation are performed directly on the layer, this is for flexibility
-        # convolutional layers focused on the core operation (convolution). Avoid adding activation functions etc
+        self.pool = nn.MaxPool2d(2, 2)
+        self.relu = nn.ReLU()
 
     def forward(self, input):
         """
             Perform a forward pass on the input data.
-            perform a layer-wise batch normalization and then apply the ReLU activation function for the forward pass
+            perform a layer-wise-batch normalization and then apply the ReLU activation function for the forward pass
 
         :param input: the input data
         :return: the output data
@@ -112,8 +113,9 @@ class FFConvLayer(nn.Conv2d):
         if self.drop:
             input_ = self.dropout(input_)
         # Perform the convolution
-        print(input_.shape, self.weight.shape, self.bias.shape)
-        return self._conv_forward(input_, self.weight, self.bias)
+        # print(input_.shape, self.weight.shape, self.bias.shape)
+        return self.relu(self._conv_forward(input_, self.weight.cuda(), self.bias.cuda()))
+        # return self._conv_forward(input_, self.weight, self.bias)
 
     def goodness_score(self, x_positive, x_negative):
         """
@@ -146,12 +148,12 @@ class FFConvLayer(nn.Conv2d):
         # the forward-forward paradigm happens here
         for epoch in range(self.num_epoch):
             # perform a forward pass and compute the goodness score
-            print('....', x_positive.shape, x_negative.shape, '....')
+            # print('....', x_positive.shape, x_negative.shape, '....')
             positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
-            print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
+            # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
             # compute the goodness loss with respect to the goodness score and the threshold
             loss = self.goodness_loss(positive_goodness, negative_goodness)
-            print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
+            # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
             # empty the gradient perform a backward pass(local descent) and update the weights and biases
             self.opti.zero_grad()
             # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
@@ -200,5 +202,3 @@ class FFConvLayer(nn.Conv2d):
 # print("Output_p shape:", data_p.shape)  # Shape Should be (data_sample, output_features)
 # print("Output_n shape:", data_n.shape)  # Shape Should be (data_sample, output_features)
 # print("Training the layer...", layer.forward_forward(data_p, data_n))
-
-
