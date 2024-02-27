@@ -54,14 +54,9 @@ class CustomDisDataset(Dataset):
 # index 1 of the data will have a label of 1 and so on
 # so if the data contains 2000 samples, the label will be a list of 2000 integers
 
-# dataset = CustomDisDataset('data/facades/test/')
-# dataloader = dataset.load_data(dataset, batch_size=32, shuffle=True, transform=None)
-# for i, (data, label) in enumerate(dataloader):
-#     print(data.shape, label.shape)
-#     if i == 10:
-#         break
-#
-# # for i, (data, label) in enumerate(dataloader):
-# #     print(data.shape, label.shape)
-# #     if i == 10:
-# #         break
+dataset = CustomDisDataset('data/facades/test/')
+dataloader = dataset.load_data(dataset, batch_size=32, shuffle=True)
+for i, (data, label) in enumerate(dataloader):
+    print(data.shape, label.shape)
+    if i == 10:
+        break
