@@ -1,3 +1,8 @@
+"""
+Code for research work generative forward forward neural networks "
+Date 20/02/2024.
+Author: Kolade Gideon *Allaye*
+"""
 import torch
 import torch.nn as nn
 from layers_ff import FFLinearLayer
@@ -52,7 +57,6 @@ class FFDenseDiscriminator(nn.Module):
             # x_negative = layer(x_negative)
             print('training layer', i, '...')
             x_positive, x_negative = layer.forward_forward(x_positive, x_negative)
-
 
 # from torchvision.datasets import MNIST
 # from torchvision.transforms import Compose, ToTensor, Normalize, Lambda

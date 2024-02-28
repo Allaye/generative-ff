@@ -32,3 +32,8 @@ class CustomDisDataset(Dataset):
 # dataloader = CustomDisDataset('dstas/datset')
 
 # for data, label in dataloader:
+=======
+# note for the dataloader, the data should be in the shape of (batch_size, channels, height, width), [row, label]
+# the label will be a list of integers representing the class of the data
+# index 1 of the data will have a label of 1 and so on
+# so if the data contains 2000 samples, the label will be a list of 2000 integers
