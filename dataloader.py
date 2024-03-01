@@ -40,7 +40,7 @@ class CustomDisDataset(Dataset):
     @staticmethod
     def load_data(dataset_object, batch_size=32, shuffle=True):
         """
-        Load the data from the file system
+         Load the data from the file system
         :param dataset_object:
         :param batch_size: the batch size
         :param shuffle: whether to shuffle the data or not

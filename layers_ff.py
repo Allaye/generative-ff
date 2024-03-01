@@ -82,7 +82,7 @@ class FFLinearLayer(nn.Linear):
 
 
 class FFConvLayer(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=100, threshold=5, drop=False, droprate=0.5,
+    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=5, threshold=5, drop=False, droprate=0.5,
                  stride=1,
                  padding=0):
         super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding)
@@ -156,10 +156,12 @@ class FFConvLayer(nn.Conv2d):
             # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
             # empty the gradient perform a backward pass(local descent) and update the weights and biases
             self.opti.zero_grad()
+            print('loss:', loss.mean())
             # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
             # compute the mean of the loss
             loss.mean().backward()
             self.opti.step()
+            print('epoch:', epoch, 'loss:', loss.mean())
         return self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
 

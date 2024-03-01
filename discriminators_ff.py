@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 from layers_ff import FFLinearLayer, FFConvLayer
 from utils import one_hot_encode_label_on_image, overlay_y_on_x, visualize_sample
+from dataloader import CustomDisDataset
+from torch.utils.data import Sampler
 
 
 class BaseDiscriminatorBlock(nn.Module):
@@ -25,18 +27,27 @@ class FFConvDiscriminator(nn.Module):
         print(self.layers)
 
     def predict(self, x):
-        pass
-    @overload
-    def predict(self, x):
         goodness_score_per_label = []
         for label in range(self.output_dim):
             # perform one hot encoding#
+            # x = torch.reshape(x, (x.shape[0], -1))
+            print('label:', label, x.shape)
             encoded = overlay_y_on_x(x, label)
             goodness = []
-            for layer in self.layers:
+            for idx, layer in enumerate(self.layers):
+
                 encoded = layer(encoded)
+                shape = encoded.shape
+                print('encoded:', encoded.shape)
+                encoded = torch.reshape(encoded, (encoded.shape[0], -1))
+                print('encoded:', encoded.shape)
                 goodness += [encoded.pow(2).mean(1)]
+                # goodness += [torch.reshape(encoded, (encoded.shape[0], -1)).pow(2).mean(1)]
+                print('goodness:', len(goodness), goodness[idx].shape)
+                # print('sum goodness:', sum(goodness))
+                encoded = encoded.reshape(shape)
             goodness_score_per_label += [sum(goodness).unsqueeze(1)]
+            print('goodness_score_per_label:', len(goodness_score_per_label))
         goodness_score_per_label = torch.cat(goodness_score_per_label, 1)
         return goodness_score_per_label.argmax(1)
 
@@ -67,11 +78,14 @@ class FFDenseDiscriminator(nn.Module):
         goodness_score_per_label = []
         for label in range(self.output_dim):
             # perform one hot encoding#
+            print('label:', label, x.shape)
             encoded = overlay_y_on_x(x, label)
             goodness = []
-            for layer in self.layers:
+            for idx, layer in enumerate(self.layers):
                 encoded = layer(encoded)
+                print('encoded:', encoded.shape)
                 goodness += [encoded.pow(2).mean(1)]
+                print('goodness:', len(goodness), goodness[idx].shape)
             goodness_score_per_label += [sum(goodness).unsqueeze(1)]
         goodness_score_per_label = torch.cat(goodness_score_per_label, 1)
         return goodness_score_per_label.argmax(1)
@@ -110,28 +124,47 @@ def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
     return train_loader, test_loader
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #
 #
 if __name__ == "__main__":
     torch.manual_seed(1234)
+    # dataset = CustomDisDataset('data/facades/test/')
+    # XX = dataset.load_data(dataset, batch_size=32, shuffle=True)
     train_loader, test_loader = MNIST_loaders()
 
-    # net = FFDenseDiscriminator([784, 500, 500], 100, 10)
+    net1 = FFDenseDiscriminator([784, 500, 500], 100, 10)
     net = FFConvDiscriminator([1, 6, 16, 120]).cuda()
+    # xx, yy = next(iter(XX))
+    # print(xx[0].shape, xx[1].shape)
 
     x, y = next(iter(train_loader))
-    # print(x.shape, y[0])
+    # # print(x.shape, y[0])
     x, y = x.cuda(), y.cuda()
     x_pos = overlay_y_on_x(x, y)
     rnd = torch.randperm(x.size(0))
     x_neg = overlay_y_on_x(x, y[rnd])
-
-    for data, name in zip([x, x_pos, x_neg], ['orig', 'pos', 'neg']):
-        visualize_sample(data, name)
+    # for data, name in zip([x, x_pos, x_neg], ['orig', 'pos', 'neg']):
+    #     visualize_sample(data, name)
     x_pos = x_pos.reshape(-1, 1, 28, 28)
     x_neg = x_neg.reshape(-1, 1, 28, 28)
-    x_neg = x_neg.to(device)
+    # net.train(x_pos, x_neg)
+    x = x.reshape(-1, 1, 28, 28)
+    # print('data shape:', x.shape, y.shape)
+    # print('train error:', 1.0 - net1.predict(x).eq(y).float().mean().item())
+    print('train error:', 1.0 - net.predict(x).eq(y).float().mean().item())
+
+    # x_te, y_te = next(iter(test_loader))
+    # x_te, y_te = x_te.cuda(), y_te.cuda()
+    # x_te = x_te.reshape(-1, 1, 28, 28)
+    # print('test error:', 1.0 - net.predict(x_te).eq(y_te).float().mean().item())
+
+    #
+    # for data, name in zip([xx, yy], ['positive', 'negative']):
+    #     visualize_sample(data, name)
+    # x_pos = x_pos.reshape(-1, 1, 28, 28)
+    # x_neg = x_neg.reshape(-1, 1, 28, 28)
+    # x_neg = x_neg.to(device)
     #   x
     #     # def overlay_y_on_x(x, y):
     #     #     """Replace the first 10 pixels of data [x] with one-hot-encoded label [y]
@@ -149,7 +182,7 @@ if __name__ == "__main__":
     #     #     plt.show()
     #
     # print('data shape,', x_pos.shape, x_neg.shape)
-    net.train(x_pos, x_neg)
+    # net.train(x_pos, x_neg)
 #
 #     print('train error:', 1.0 - net.predict(x).eq(y).float().mean().item())
 #
