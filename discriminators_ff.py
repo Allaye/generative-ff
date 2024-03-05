@@ -18,12 +18,14 @@ class BaseDiscriminatorBlock(nn.Module):
 
 
 class FFConvDiscriminator(nn.Module):
-    def __init__(self, dimension, output_dim=10):
+    def __init__(self, dimension, output_dim=10, kernel_size=5):
         super().__init__()
         self.layers = []
         self.output_dim = output_dim
+        self.kernel_size = kernel_size
+        self.padding = (self.kernel_size - 1) // 2
         for dim in range(len(dimension) - 1):
-            self.layers.append(FFConvLayer(dimension[dim], dimension[dim + 1], 5))
+            self.layers.append(FFConvLayer(dimension[dim], dimension[dim + 1], self.kernel_size, padding=self.padding))
         print(self.layers)
 
     def predict(self, x):
