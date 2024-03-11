@@ -29,27 +29,21 @@ def overlay_y_on_x1(x, y):
     x_ = x.clone()
     # print('xxxx', x_.shape)
 
-    r = x_[:, 0, :, :].reshape(-1, 256, 256)
-    g = x_[:, 1, :, :].reshape(-1, 256, 256)
-    b = x_[:, 2, :, :].reshape(-1, 256, 256)
+    r = torch.reshape(x_[:, 0, :, :], (-1, 256 * 256))
+    g = torch.reshape(x_[:, 1, :, :], (-1, 256 * 256))
+    b = torch.reshape(x_[:, 2, :, :], (-1, 256 * 256))
     print('yyyy', r.shape, g.shape, b.shape)
-    r[:, :100] *= 255.0
-    g[:, :200] *= 255.0
-    b[:, :200] *= 255.0
-    r = r.reshape(-1, 256, 256)
-    g = g.reshape(-1, 256, 256)
-    b = b.reshape(-1, 256, 256)
-    x_[:, 0, :, :] = r
-    x_[:, 1, :, :] = g
-    x_[:, 2, :, :] = b
-    # x_[:, :, :2, :] = 0.0
+    r[:, :2] *= 0.0
+    g[:, :100] *= 0.0
+    b[:, :100] *= 0.0
 
-    #  x_[:, :, :2] *= 0.0
-    # x_[:, :, :2, :] = 0.0
-    # x_[range(x.shape[0]), y] = x.max()
-    # x_[range(x.shape[0]), :, :, y] = x.max()
-
-    x_ = x_.reshape(-1, 3, 256, 256)
+    r[range(x.shape[0]), y] = x.max()
+    g[range(x.shape[0]), y] = x.max()
+    b[range(x.shape[0]), y] = x.max()
+    x_[:, 0, :, :] = torch.reshape(r, (-1, 256, 256))
+    x_[:, 1, :, :] = torch.reshape(g, (-1, 256, 256))
+    x_[:, 2, :, :] = torch.reshape(b, (-1, 256, 256))
+    # x_ = x_.reshape(-1, 3, 256, 256)
     return x_
 
 
@@ -59,12 +53,13 @@ def overlay_y_on_x(x, y):
     x_ = x.clone()
     # print('xxxx', x_.shape)
     x_[:, :10] *= 0.0
+    # print('yyyy', x.shape, y, x_.shape, x.shape[0])
     x_[range(x.shape[0]), y] = x.max()
     return x_
 
 
 def visualize_sample(data, name='', idx=0):
-    reshaped = data[idx].cpu().reshape(28, 28)
+    reshaped = data.cpu().reshape(28, 28)
     plt.figure(figsize=(4, 4))
     plt.title(name)
     plt.imshow(reshaped, cmap="gray")

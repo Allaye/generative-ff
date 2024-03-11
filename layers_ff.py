@@ -18,10 +18,10 @@ class FFLinearLayer(nn.Linear):
     :param bias: whether to use the bias or not
     """
 
-    def __init__(self, in_features, out_features, num_epoch=1000, threshold=6.5, device="cuda", bias=True):
+    def __init__(self, in_features, out_features, num_epoch=1000, threshold=2.0, device="cuda", bias=True):
         super(FFLinearLayer, self).__init__(in_features, out_features, bias, device)
         self.relu = nn.ReLU()
-        self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
+        self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
         self.num_epoch = num_epoch
         self.threshold = threshold
 
@@ -54,7 +54,7 @@ class FFLinearLayer(nn.Linear):
         negative_goodness = self.forward(x_negative).pow(2).mean(1)
         return positive_goodness, negative_goodness
 
-    def goodness_loss(self, positive_goodness, negative_goodness, sigmoid=True):
+    def goodness_loss(self, positive_goodness, negative_goodness, sigmoid=False):
         """
             Compute the goodness loss, this is the loss function for the goodness score.
             Math: L = sigmoid(-goodness_positive + threshold) + sigmoid(goodness_negative - threshold)
@@ -80,9 +80,25 @@ class FFLinearLayer(nn.Linear):
             self.opti.step()
         return self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
+    def train(self, x_pos, x_neg):
+        for i in range(self.num_epoch):
+            g_pos = self.forward(x_pos).pow(2).mean(1)
+            g_neg = self.forward(x_neg).pow(2).mean(1)
+            # The following loss pushes pos (neg) samples to
+            # values larger (smaller) than the self.threshold.
+            loss = torch.log(1 + torch.exp(torch.cat([
+                -g_pos + self.threshold,
+                g_neg - self.threshold]))).mean()
+            self.opti.zero_grad()
+            # this backward just compute the derivative and hence
+            # is not considered backpropagation.
+            loss.backward()
+            self.opti.step()
+        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+
 
 class FFConvLayer(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=5, threshold=5, drop=False, droprate=0.5,
+    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=100, threshold=2.0, drop=False, droprate=0.5,
                  stride=1,
                  padding=0):
         super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding)
@@ -94,7 +110,7 @@ class FFConvLayer(nn.Conv2d):
         self.dropout = nn.Dropout2d(droprate)
         self.threshold = threshold
         self.num_epoch = num_epoch
-        self.opti = torch.optim.Adam(self.parameters(), lr=0.001)
+        self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
         self.pool = nn.MaxPool2d(2, 2)
         self.relu = nn.ReLU()
 
