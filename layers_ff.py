@@ -1,5 +1,5 @@
 """
-Code for research work generative forward-forward neural networks "
+Code for research work for the layers of the forward-forward neural networks "
 Date 19/02/2024.
 Author: Kolade Gideon *Allaye*
 """
@@ -78,23 +78,25 @@ class FFLinearLayer(nn.Linear):
             self.opti.zero_grad()
             loss.backward()
             self.opti.step()
-        return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+            print(f"Epoch {epoch + 1}: Training Loss {loss.item()}")
+        return loss.item(), self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
-    def train(self, x_pos, x_neg):
-        for i in range(self.num_epoch):
-            g_pos = self.forward(x_pos).pow(2).mean(1)
-            g_neg = self.forward(x_neg).pow(2).mean(1)
-            # The following loss pushes pos (neg) samples to
-            # values larger (smaller) than the self.threshold.
-            loss = torch.log(1 + torch.exp(torch.cat([
-                -g_pos + self.threshold,
-                g_neg - self.threshold]))).mean()
-            self.opti.zero_grad()
-            # this backward just compute the derivative and hence
-            # is not considered backpropagation.
-            loss.backward()
-            self.opti.step()
-        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+    def forward_forward_trad(self, x_pos, x_neg):
+
+        g_pos = self.forward(x_pos).pow(2).mean(1)
+        g_neg = self.forward(x_neg).pow(2).mean(1)
+        # The following loss pushes pos (neg) samples to
+        # values larger (smaller) than the self.threshold.
+        loss = torch.log(1 + torch.exp(torch.cat([
+            -g_pos + self.threshold,
+            g_neg - self.threshold]))).mean()
+        self.opti.zero_grad()
+        # this backward just compute the derivative and hence
+        # is not considered backpropagation.
+        loss.backward()
+        self.opti.step()
+        print(f"Training Loss {loss.item()}")
+        return loss.item(), self.forward(x_pos).detach(), self.forward(x_neg).detach()
 
 
 class FFConvLayer(nn.Conv2d):
