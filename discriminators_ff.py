@@ -112,7 +112,9 @@ class FFDenseDiscriminator(nn.Module):
             # x_negative = layer(x_negative)
             print('training layer', i, '...')
             loss, x_positive, x_negative = layer.forward_forward_trad(x_positive, x_negative)
-            logger.log({'epoch': epoch, 'loss': loss})
+            if epoch % 100 == 0:
+                # print('epoch:', epoch, 'loss:', loss)
+                logger.log({'epoch': epoch, 'loss': loss})
 
             # x_positive, x_negative = layer.train(x_positive, x_negative)
 
