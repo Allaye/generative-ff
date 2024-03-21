@@ -100,7 +100,7 @@ class FFLinearLayer(nn.Linear):
 
 class FFConvTransLayer(nn.ConvTranspose2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
-                 drop=False, droprate=0.5, bias=False, padding_mode="reflect"
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", act="relu"
                  ):
         super(FFConvTransLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
         # Initialize weights using Xavier/Glorot initialization
@@ -113,7 +113,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
         self.num_epoch = num_epoch
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
         self.batch_norm = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
+        self.acti = nn.ReLU() if act == "relu" else nn.Tanh()
 
         # self.pool = nn.MaxPool2d(2, 2)
 
@@ -193,7 +193,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
 
 class FFConvLayer(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
-                 drop=False, droprate=0.5, bias=False, padding_mode="reflect"
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", init=False, act="relu"
                  ):
         super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias, padding_mode=padding_mode)
         # Initialize weights using Xavier/Glorot initialization
@@ -204,8 +204,12 @@ class FFConvLayer(nn.Conv2d):
         self.threshold = threshold
         self.num_epoch = num_epoch
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
-        self.batch_norm = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
+        self.init = init
+        if self.init:
+            self.relu = nn.LeakyReLU(0.2)
+        else:
+            self.relu = nn.ReLU() if act == "relu" else nn.LeakyReLU(0.2)
+            self.batch_norm = nn.BatchNorm2d(out_channels)
         self.dropout = nn.Dropout2d(droprate)
         # self.pool = nn.MaxPool2d(2, 2)
 
@@ -225,7 +229,8 @@ class FFConvLayer(nn.Conv2d):
         # print(input_.shape, self.weight.shape, self.bias.shape)
         output = super(FFConvLayer, self).forward(input_)
         # Perform batch normalization
-        output = self.batch_norm(output)
+        if self.init is False:
+            output = self.batch_norm(output)
         # Perform the ReLU activation
         output = self.relu(output)
         # Calculate mean and variance of the kernel
