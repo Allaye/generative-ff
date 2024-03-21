@@ -82,7 +82,6 @@ class FFLinearLayer(nn.Linear):
         return loss.item(), self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
     def forward_forward_trad(self, x_pos, x_neg):
-
         g_pos = self.forward(x_pos).pow(2).mean(1)
         g_neg = self.forward(x_neg).pow(2).mean(1)
         # The following loss pushes pos (neg) samples to
@@ -99,22 +98,24 @@ class FFLinearLayer(nn.Linear):
         return loss.item(), self.forward(x_pos).detach(), self.forward(x_neg).detach()
 
 
-class FFConvLayer(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, num_epoch=100, threshold=2.0, drop=False, droprate=0.5,
-                 stride=1,
-                 padding=0):
-        super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding)
+class FFConvTransLayer(nn.ConvTranspose2d):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect"
+                 ):
+        super(FFConvTransLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
         # Initialize weights using Xavier/Glorot initialization
         nn.init.xavier_uniform_(self.weight)
         # Initialize biases to zeros
-        nn.init.zeros_(self.bias)
+        # nn.init.zeros_(self.bias)
         self.drop = drop
         self.dropout = nn.Dropout2d(droprate)
         self.threshold = threshold
         self.num_epoch = num_epoch
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
-        self.pool = nn.MaxPool2d(2, 2)
+        self.batch_norm = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU()
+
+        # self.pool = nn.MaxPool2d(2, 2)
 
     def forward(self, input):
         """
@@ -127,12 +128,19 @@ class FFConvLayer(nn.Conv2d):
         # print(x.shape, self.weight.shape, self.bias.shape)
         input_ = input / (input.norm(2, 1, keepdim=True) + 1e-4)
         #
-        # Calculate mean and variance of the kernel
-        if self.drop:
-            input_ = self.dropout(input_)
         # Perform the convolution
         # print(input_.shape, self.weight.shape, self.bias.shape)
-        return self.relu(self._conv_forward(input_, self.weight.cuda(), self.bias.cuda()))
+        output = super(FFConvTransLayer, self).forward(input_)
+        # Perform batch normalization
+        output = self.batch_norm(output)
+        # Perform the ReLU activation
+        output = self.relu(output)
+        if self.drop:
+            output = self.dropout(output)
+        # Perform the max pooling
+        # output = self.pool(output)
+        return output
+        # return self.relu(self._conv_forward(input_, self.weight.cuda(), self.bias.cuda()))
         # return self._conv_forward(input_, self.weight, self.bias)
 
     def goodness_score(self, x_positive, x_negative):
@@ -182,6 +190,99 @@ class FFConvLayer(nn.Conv2d):
             print('epoch:', epoch, 'loss:', loss.mean())
         return self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
+
+class FFConvLayer(nn.Conv2d):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect"
+                 ):
+        super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias, padding_mode=padding_mode)
+        # Initialize weights using Xavier/Glorot initialization
+        nn.init.xavier_uniform_(self.weight)
+        # Initialize biases to zeros
+        # nn.init.zeros_(self.bias)
+        self.drop = drop
+        self.threshold = threshold
+        self.num_epoch = num_epoch
+        self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
+        self.batch_norm = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout2d(droprate)
+        # self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, input):
+        """
+            Perform a forward pass on the input data.
+            perform a layer-wise-batch normalization and then apply the ReLU activation function for the forward pass
+
+        :param input: the input data
+        :return: the output data
+        """
+        # print(x.shape, self.weight.shape, self.bias.shape)
+        input_ = input / (input.norm(2, 1, keepdim=True) + 1e-4)
+        #
+
+        # Perform the convolution
+        # print(input_.shape, self.weight.shape, self.bias.shape)
+        output = super(FFConvLayer, self).forward(input_)
+        # Perform batch normalization
+        output = self.batch_norm(output)
+        # Perform the ReLU activation
+        output = self.relu(output)
+        # Calculate mean and variance of the kernel
+        if self.drop:
+            output = self.dropout(output)
+        # Perform the max pooling
+        # output = self.pool(output)
+        return output
+        # return self.relu(self._conv_forward(input_, self.weight.cuda(), self.bias.cuda()))
+        # return self._conv_forward(input_, self.weight, self.bias)
+
+    def goodness_score(self, x_positive, x_negative):
+        """
+            compute the goodness score, meaning square up the activation of each neuron in the layer and square them up.
+            Math: sum_{activations}^2
+        :arg x_positive: the positive sample
+        :arg x_negative: the negative sample
+        :return: the positive and negative goodness score
+        """
+        positive_goodness = self.forward(x_positive).pow(2).mean(1)
+        negative_goodness = self.forward(x_negative).pow(2).mean(1)
+        return positive_goodness, negative_goodness
+
+    def goodness_loss(self, positive_goodness, negative_goodness, sigmoid=True):
+        """
+            Compute the goodness loss, this is the loss function for the goodness score.
+            Math: L = sigmoid(-goodness_positive + threshold) + sigmoid(goodness_negative - threshold)
+        :param positive_goodness: the positive goodness score
+        :param negative_goodness: the negative goodness score
+        :param sigmoid: whether to use the sigmoid function or not
+        :return: the goodness loss
+        """
+        # errors = torch.cat([-positive_goodness + self.threshold, negative_goodness - self.threshold])
+        # loss = torch.sigmoid(errors).mean() if sigmoid else torch.log(1 + torch.exp(errors)).mean()
+        loss = torch.log(1 + torch.exp(torch.cat([-positive_goodness + self.threshold,
+                                                  negative_goodness - self.threshold], 0)))
+        return loss
+
+    def forward_forward(self, x_positive, x_negative):
+        # the forward-forward paradigm happens here
+        for epoch in range(self.num_epoch):
+            # perform a forward pass and compute the goodness score
+            # print('....', x_positive.shape, x_negative.shape, '....')
+            positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
+            # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
+            # compute the goodness loss with respect to the goodness score and the threshold
+            loss = self.goodness_loss(positive_goodness, negative_goodness)
+            # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
+            # empty the gradient perform a backward pass(local descent) and update the weights and biases
+            self.opti.zero_grad()
+            print('loss:', loss.mean())
+            # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
+            # compute the mean of the loss
+            loss.mean().backward()
+            self.opti.step()
+            print('epoch:', epoch, 'loss:', loss.mean())
+        return self.forward(x_positive).detach(), self.forward(x_negative).detach()
 
 # Instantiate the FFLinearLayer
 
