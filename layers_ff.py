@@ -134,7 +134,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
         # Perform batch normalization
         output = self.batch_norm(output)
         # Perform the ReLU activation
-        output = self.relu(output)
+        output = self.acti(output)
         if self.drop:
             output = self.dropout(output)
         # Perform the max pooling
@@ -227,6 +227,7 @@ class FFConvLayer(nn.Conv2d):
 
         # Perform the convolution
         # print(input_.shape, self.weight.shape, self.bias.shape)
+        # pass the input data through the convolutional layer
         output = super(FFConvLayer, self).forward(input_)
         # Perform batch normalization
         if self.init is False:
