@@ -100,7 +100,7 @@ class FFLinearLayer(nn.Linear):
 
 class FFConvTransLayer(nn.ConvTranspose2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
-                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", act="relu"
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", act="relu", norm=True
                  ):
         super(FFConvTransLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
         # Initialize weights using Xavier/Glorot initialization
@@ -108,6 +108,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
         # Initialize biases to zeros
         # nn.init.zeros_(self.bias)
         self.drop = drop
+        self.norm = norm
         self.dropout = nn.Dropout2d(droprate)
         self.threshold = threshold
         self.num_epoch = num_epoch
@@ -132,7 +133,8 @@ class FFConvTransLayer(nn.ConvTranspose2d):
         # print(input_.shape, self.weight.shape, self.bias.shape)
         output = super(FFConvTransLayer, self).forward(input_)
         # Perform batch normalization
-        output = self.batch_norm(output)
+        if self.norm:
+            output = self.batch_norm(output)
         # Perform the ReLU activation
         output = self.acti(output)
         if self.drop:
@@ -193,7 +195,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
 
 class FFConvLayer(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
-                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", init=False, act="relu"
+                 drop=False, droprate=0.5, bias=False, padding_mode="reflect", init=False, act="relu", norm=True
                  ):
         super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias, padding_mode=padding_mode)
         # Initialize weights using Xavier/Glorot initialization
@@ -201,6 +203,7 @@ class FFConvLayer(nn.Conv2d):
         # Initialize biases to zeros
         # nn.init.zeros_(self.bias)
         self.drop = drop
+        self.norm = norm
         self.threshold = threshold
         self.num_epoch = num_epoch
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
@@ -230,7 +233,7 @@ class FFConvLayer(nn.Conv2d):
         # pass the input data through the convolutional layer
         output = super(FFConvLayer, self).forward(input_)
         # Perform batch normalization
-        if self.init is False:
+        if self.norm is True:
             output = self.batch_norm(output)
         # Perform the ReLU activation
         output = self.relu(output)
