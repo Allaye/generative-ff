@@ -17,13 +17,35 @@ from torch.utils.data import DataLoader
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 
-class BaseDiscriminatorBlock(nn.Module):
-    def __init__(self):
-        super().__init__()
-        pass
+class FFBaseDiscriminatorBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, act="leakyrelu", bias=False):
+        super(FFBaseDiscriminatorBlock, self).__init__()
+        self.conv = nn.Sequential(
+            FFConvLayer(in_channels, out_channels, kernel_size, stride, padding, bias, act, padding_mode="reflect")
+        )
+
+    def forward(self, x):
+        return self.conv(x)
 
 
 class FFConvDiscriminator(nn.Module):
+    def __init__(self, in_channels=3, out_channels=None, kernel_size=4, stride=2, padding=1, act="leakyrelu"):
+        super(FFConvDiscriminator, self).__init__()
+        if out_channels is None or len(out_channels) < 4:
+            out_channels = [64, 128, 256, 512]
+        self.initial = nn.Sequential(
+            FFConvLayer(in_channels*3, out_channels[0], kernel_size, stride, padding, act, padding_mode="reflect")
+        )
+        layers = []
+        in_channels = out_channels[0]
+        for out_channel in out_channels[1:]:
+            layers.append(FFBaseDiscriminatorBlock(in_channels, out_channel, kernel_size, stride, padding, act))
+            in_channels = out_channel
+
+
+
+
+class ConvDiscriminator(nn.Module):
     def __init__(self, dimension, output_dim=10, kernel_size=3):
         super().__init__()
         self.layers = []
