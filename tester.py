@@ -1,6 +1,6 @@
 import torch
-from generator import *
-
+from generator_ff import *
+from discriminators_ff import *
 
 def test():
     x = torch.randn((1, 3, 256, 256))
