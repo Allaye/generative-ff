@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from layers_ff import FFLinearLayer, FFConvLayer
 from utils import one_hot_encode_label_on_image, overlay_y_on_x, visualize_sample
-from dataloader import CustomDisDataset
+from dataloader import CustomDataset
 from torch.utils.data import Sampler
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize, Lambda

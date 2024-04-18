@@ -49,9 +49,15 @@ class FFConvGenerator(nn.Module):
         self.final_up = nn.Sequential(
             FFConvTransLayer(out_channels * 2, in_channels, 4, 2, 1, act="tanh", norm=False),
         )
+        self.layers = [
+            self.initial_down, self.down1, self.down2, self.down3, self.down4, self.down5, self.down6,
+            self.bottleneck,
+            self.up1, self.up2, self.up3, self.up4, self.up5, self.up6, self.up7, self.final_up
+        ]
         # nn.ConvTranspose2d()
 
     def forward(self, x):
+        # this method will technically be use just for generation
         d1 = self.initial_down(x)
         d2 = self.down1(d1)
         d3 = self.down2(d2)
@@ -73,5 +79,23 @@ class FFConvGenerator(nn.Module):
 
         return self.final_up(torch.cat([up7, d1], 1))
 
+    def layer_train(self, x_positive, x_negative, tra=False, epoch=None, logger=None):
+        for i, layer in enumerate(self.layers):
+            # x_positive = layer(x_positive)
+            # x_negative = layer(x_negative)
+            print('training layer', i, '...')
+            loss, x_positive, x_negative = layer.forward_forward_trad(x_positive, x_negative)
+            if epoch % 20 == 0:
+                # print('epoch:', epoch, 'loss:', loss)
+                logger.log({'epoch': epoch, 'loss': loss})
 
+            # x_positive, x_negative = layer.train(x_positive, x_negative)
 
+    def train(self, x_positive, x_negative, logger=None, model=None, x=None, y=None):
+        for i in range(self.num_epoch):
+            self.layer_train(x_positive, x_negative, epoch=i, logger=logger)
+            generated_img = self.forward(x_negative)
+            # train_loss = 1.0 - model.predict(x).eq(y).float().mean().item()
+            logger.log({'epoch': i, 'train_loss': train_loss})
+            print('epoch:', i, '...')
+        print('training completed...')

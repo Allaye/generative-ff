@@ -1,14 +1,17 @@
 import tarfile
 import os
+
+import matplotlib
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Lambda, PILToTensor
 from PIL import Image
 from utils import split_image
 
 
-class CustomDisDataset(Dataset):
+class CustomDataset(Dataset):
     def __init__(self, path, transform=[ToTensor()]):
         self.filenames = os.listdir(path)
         self.transform = Compose(transform)
@@ -31,6 +34,7 @@ class CustomDisDataset(Dataset):
         :return:
         """
         image = np.array(Image.open(self.full_image_path[idx]))
+        print(image.shape)
         x, y = split_image(image)
         if self.transform:
             x = self.transform(x)
@@ -58,5 +62,7 @@ class CustomDisDataset(Dataset):
 # dataloader = dataset.load_data(dataset, batch_size=32, shuffle=True)
 # for i, (data, label) in enumerate(dataloader):
 #     print(data.shape, label.shape)
+#     # plt.imshow(data[0].reshape(256, 256, 3))
+#     # plt.show(block=True)
 #     if i == 10:
 #         break

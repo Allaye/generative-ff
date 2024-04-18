@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -163,4 +162,3 @@ cython_debug/
 =======
 /venv
 /.idea
->>>>>>> 3887940a17c73da024872ffdcd2976481873c227

@@ -172,25 +172,41 @@ class FFConvTransLayer(nn.ConvTranspose2d):
                                                   negative_goodness - self.threshold], 0)))
         return loss
 
-    def forward_forward(self, x_positive, x_negative):
-        # the forward-forward paradigm happens here
-        for epoch in range(self.num_epoch):
-            # perform a forward pass and compute the goodness score
-            # print('....', x_positive.shape, x_negative.shape, '....')
-            positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
-            # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
-            # compute the goodness loss with respect to the goodness score and the threshold
-            loss = self.goodness_loss(positive_goodness, negative_goodness)
-            # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
-            # empty the gradient perform a backward pass(local descent) and update the weights and biases
-            self.opti.zero_grad()
-            print('loss:', loss.mean())
-            # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
-            # compute the mean of the loss
-            loss.mean().backward()
-            self.opti.step()
-            print('epoch:', epoch, 'loss:', loss.mean())
-        return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+    # def forward_forward(self, x_positive, x_negative):
+    #     # the forward-forward paradigm happens here
+    #     for epoch in range(self.num_epoch):
+    #         # perform a forward pass and compute the goodness score
+    #         # print('....', x_positive.shape, x_negative.shape, '....')
+    #         positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
+    #         # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
+    #         # compute the goodness loss with respect to the goodness score and the threshold
+    #         loss = self.goodness_loss(positive_goodness, negative_goodness)
+    #         # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
+    #         # empty the gradient perform a backward pass(local descent) and update the weights and biases
+    #         self.opti.zero_grad()
+    #         print('loss:', loss.mean())
+    #         # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
+    #         # compute the mean of the loss
+    #         loss.mean().backward()
+    #         self.opti.step()
+    #         print('epoch:', epoch, 'loss:', loss.mean())
+    #     return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+
+    def forward_forward_trad(self, x_pos, x_neg):
+        g_pos = self.forward(x_pos).pow(2).mean(1)
+        g_neg = self.forward(x_neg).pow(2).mean(1)
+        # The following loss pushes pos (neg) samples to
+        # values larger (smaller) than the self.threshold.
+        loss = torch.log(1 + torch.exp(torch.cat([
+            -g_pos + self.threshold,
+            g_neg - self.threshold]))).mean()
+        self.opti.zero_grad()
+        # this backward just compute the derivative and hence
+        # is not considered backpropagation.
+        loss.backward()
+        self.opti.step()
+        print(f"Training Loss {loss.item()}")
+        return loss.item(), self.forward(x_pos).detach(), self.forward(x_neg).detach()
 
 
 class FFConvLayer(nn.Conv2d):
@@ -273,25 +289,41 @@ class FFConvLayer(nn.Conv2d):
                                                   negative_goodness - self.threshold], 0)))
         return loss
 
-    def forward_forward(self, x_positive, x_negative):
-        # the forward-forward paradigm happens here
-        for epoch in range(self.num_epoch):
-            # perform a forward pass and compute the goodness score
-            # print('....', x_positive.shape, x_negative.shape, '....')
-            positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
-            # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
-            # compute the goodness loss with respect to the goodness score and the threshold
-            loss = self.goodness_loss(positive_goodness, negative_goodness)
-            # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
-            # empty the gradient perform a backward pass(local descent) and update the weights and biases
-            self.opti.zero_grad()
-            print('loss:', loss.mean())
-            # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
-            # compute the mean of the loss
-            loss.mean().backward()
-            self.opti.step()
-            print('epoch:', epoch, 'loss:', loss.mean())
-        return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+    # def forward_forward(self, x_positive, x_negative):
+    #     # the forward-forward paradigm happens here
+    #     for epoch in range(self.num_epoch):
+    #         # perform a forward pass and compute the goodness score
+    #         # print('....', x_positive.shape, x_negative.shape, '....')
+    #         positive_goodness, negative_goodness = self.goodness_score(x_positive, x_negative)
+    #         # print('goodness', positive_goodness.shape, negative_goodness.shape, 'goddness')
+    #         # compute the goodness loss with respect to the goodness score and the threshold
+    #         loss = self.goodness_loss(positive_goodness, negative_goodness)
+    #         # print('loss', loss.shape, 'loss', loss.mean(), loss.sum(), loss)
+    #         # empty the gradient perform a backward pass(local descent) and update the weights and biases
+    #         self.opti.zero_grad()
+    #         print('loss:', loss.mean())
+    #         # loss.backward() expects a scalar loss value, this implementation uses 2 losses so we need to sum or
+    #         # compute the mean of the loss
+    #         loss.mean().backward()
+    #         self.opti.step()
+    #         print('epoch:', epoch, 'loss:', loss.mean())
+    #     return self.forward(x_positive).detach(), self.forward(x_negative).detach()
+
+    def forward_forward_trad(self, x_pos, x_neg):
+        g_pos = self.forward(x_pos).pow(2).mean(1)
+        g_neg = self.forward(x_neg).pow(2).mean(1)
+        # The following loss pushes pos (neg) samples to
+        # values larger (smaller) than the self.threshold.
+        loss = torch.log(1 + torch.exp(torch.cat([
+            -g_pos + self.threshold,
+            g_neg - self.threshold]))).mean()
+        self.opti.zero_grad()
+        # this backward just compute the derivative and hence
+        # is not considered backpropagation.
+        loss.backward()
+        self.opti.step()
+        print(f"Training Loss {loss.item()}")
+        return loss.item(), self.forward(x_pos).detach(), self.forward(x_neg).detach()
 
 # Instantiate the FFLinearLayer
 
