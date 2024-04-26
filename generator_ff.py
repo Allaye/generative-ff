@@ -23,6 +23,9 @@ class FFBaseGeneratorBlock(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
+    def get_sequential_layer(self):
+        return self.conv
+
 
 class FFConvGenerator(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -84,18 +87,22 @@ class FFConvGenerator(nn.Module):
             # x_positive = layer(x_positive)
             # x_negative = layer(x_negative)
             print('training layer', i, '...')
-            loss, x_positive, x_negative = layer.forward_forward_trad(x_positive, x_negative)
+            if not isinstance(layer, nn.Sequential):
+                layer = layer.get_sequential_layer()
+            loss, x_positive, x_negative = layer[0].forward_forward_trad(x_positive, x_negative)
             if epoch % 20 == 0:
-                # print('epoch:', epoch, 'loss:', loss)
-                logger.log({'epoch': epoch, 'loss': loss})
+                print('epoch:', epoch, 'loss:', loss)
+                # logger.log({'epoch': epoch, 'loss': loss})
 
             # x_positive, x_negative = layer.train(x_positive, x_negative)
 
-    def train(self, x_positive, x_negative, logger=None, model=None, x=None, y=None):
-        for i in range(self.num_epoch):
-            self.layer_train(x_positive, x_negative, epoch=i, logger=logger)
-            generated_img = self.forward(x_negative)
+    def train(self, grand_truth_img, gen_img, num_epoch, logger=None, model=None, x=None, y=None):
+        for i in range(num_epoch):
+            self.layer_train(gen_img, grand_truth_img, epoch=i, logger=logger)
+            generated_img = self.forward(grand_truth_img)
             # train_loss = 1.0 - model.predict(x).eq(y).float().mean().item()
-            logger.log({'epoch': i, 'train_loss': train_loss})
+            # Calculate the absolute difference
+            abs_diff = torch.abs(generated_img - gen_img)
+            # logger.log({'epoch': i, 'train_loss': abs_diff})
             print('epoch:', i, '...')
         print('training completed...')

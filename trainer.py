@@ -5,6 +5,7 @@ from discriminators_ff import *
 from utils import *
 from dataloader import CustomDataset
 from generator_ff import *
+import matplotlib.pyplot as plt
 
 #
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,18 +36,35 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if __name__ == "__main__":
     torch.manual_seed(1234)
     dataset = CustomDataset('data/facades/test/')
-    dataloader = dataset.load_data(dataset, batch_size=5, shuffle=True)
+    dataloader = dataset.load_data(dataset, batch_size=1, shuffle=True)
     generator = FFConvGenerator(in_channels=3, out_channels=64)
-    x = torch.randn((1, 3, 256, 256))
-    generated_image = generator(x)
     num_epochs = 20
+    for i, (grand_truth_img, gen_img) in enumerate(dataloader):
+        # print(data.shape, label.shape)
+        # plt.imshow(data[0].reshape(256, 256, 3))
+        # plt.show(block=True)
+        if i == 5:
+            break
+        generator.train(grand_truth_img, gen_img, 30)
+        generated_image = generator(grand_truth_img)
+        print(generated_image.shape)
+        image_array = generated_image.squeeze().permute(1, 2, 0).detach().numpy()
+
+        # Display the image
+        # plt.imshow(image_array)
+        # plt.axis('off')  # Hide axes
+        # plt.show()
+    # x = torch.randn((1, 3, 256, 256))
+    # generated_image = generator(x)
+
+
+
     # dataa = generator.initial_down(x)
-    print(generator.initial_down[0].forward_forward_trad)
+    # print(generator.initial_down[0].forward_forward_trad)
     # print(dataa)
     # for idx, (negative, positive) in enumerate(dataloader):
     #     pass
 
-    print(generated_image.shape)
 #     train_loader, test_loader = MNIST_loaders()
 #
 #     net1 = FFDenseDiscriminator([784, 784, 500, 500, 500, 500], 1000, 10)

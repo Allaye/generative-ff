@@ -131,6 +131,7 @@ class FFConvTransLayer(nn.ConvTranspose2d):
         #
         # Perform the convolution
         # print(input_.shape, self.weight.shape, self.bias.shape)
+        print('shape inside transpose', input_.shape)
         output = super(FFConvTransLayer, self).forward(input_)
         # Perform batch normalization
         if self.norm:
@@ -213,7 +214,8 @@ class FFConvLayer(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_epoch=100, threshold=2.0,
                  drop=False, droprate=0.5, bias=False, padding_mode="reflect", init=False, act="relu", norm=True
                  ):
-        super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias, padding_mode=padding_mode)
+        super(FFConvLayer, self).__init__(in_channels, out_channels, kernel_size, stride, padding, bias=bias,
+                                          padding_mode=padding_mode)
         # Initialize weights using Xavier/Glorot initialization
         nn.init.xavier_uniform_(self.weight)
         # Initialize biases to zeros

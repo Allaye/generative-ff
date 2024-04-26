@@ -35,11 +35,11 @@ class CustomDataset(Dataset):
         """
         image = np.array(Image.open(self.full_image_path[idx]))
         print(image.shape)
-        x, y = split_image(image)
+        gt, gf = split_image(image)
         if self.transform:
-            x = self.transform(x)
-            y = self.transform(y)
-        return x, y
+            gt = self.transform(gt)
+            gf = self.transform(gf)
+        return gt, gf
 
     @staticmethod
     def load_data(dataset_object, batch_size=32, shuffle=True):
