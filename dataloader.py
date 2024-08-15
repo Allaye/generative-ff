@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms, datasets
 from torchvision.transforms import Compose, ToTensor, Normalize, Lambda, PILToTensor
 from PIL import Image
 from utils import split_image
@@ -51,6 +52,21 @@ class CustomDataset(Dataset):
         :return: the data loader
         """
         return DataLoader(dataset_object, batch_size=batch_size, shuffle=shuffle)
+
+
+def mnist_data():
+    compose = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((.5, .5, .5), (.5, .5, .5))
+         ])
+    out_dir = './dataset'
+    return datasets.MNIST(root=out_dir, train=True, transform=compose, download=True)
+# Load data
+data = mnist_data()
+# Create loader with data, so that we can iterate over it
+data_loader = torch.utils.data.DataLoader(data, batch_size=100, shuffle=True)
+# Num batches
+num_batches = len(data_loader)
 
 
 # note for the dataloader, the data should be in the shape of (batch_size, channels, height, width), [row, label]

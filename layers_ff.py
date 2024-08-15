@@ -18,12 +18,13 @@ class FFLinearLayer(nn.Linear):
     :param bias: whether to use the bias or not
     """
 
-    def __init__(self, in_features, out_features, act, slope=0.2, num_epoch=1000, threshold=2.0, device="cuda", bias=True):
+    def __init__(self, in_features, out_features, act, drop=False, drop_rate=0.5, slope=0.2, num_epoch=1000, threshold=2.0, device="cuda", bias=True):
         super(FFLinearLayer, self).__init__(in_features, out_features, bias, device)
 
         # self.relu = nn.ReLU()
         self.activation = act(negative_slope=slope) if act.__name__ == "LeakyReLU" else act()
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
+        self.dropout = nn.Dropout(drop_rate) if drop else None
         self.num_epoch = num_epoch
         self.threshold = threshold
 
@@ -39,10 +40,10 @@ class FFLinearLayer(nn.Linear):
         x_ = x / (x.norm(2, 1, keepdim=True) + 1e-4)
         # print(x_.shape, self.weight.shape, self.weight.T.shape, self.bias.shape, self.bias.unsqueeze(0).shape,
         #       self.bias.unsqueeze(0).T.shape)
-
+        if self.dropout is not None:
+            x_ = self.dropout(x_)
         return self.activation(torch.mm(x_, self.weight.T) + self.bias.unsqueeze(0))
         # return self.relu(torch.mm(x_, self.weight) + self.bias.view(1, -1))
-
     # @staticmethod
     def goodness_score(self, x_positive, x_negative):
         """

@@ -89,27 +89,33 @@ def generate_label(data, label):
     else:  # label == 0
         return torch.zeros(data.shape[0], dtype=torch.int)
 
-# data shape batch_size, channels, height, width
-# label shape batch_size, 1
-# data = torch.rand(32, 3, 256, 256)
 
-# torch.manual_seed(1234)
-# data = torch.rand(3000, 255, 255, 3)
-# print(data.shape, data.shape[0])
-# ones = torch.ones(data.shape[0])
-# print(ones.shape)
-#
-# label, fake = generate_label(data, 0), generate_label(data, 1)
-# print(label.shape, fake.shape)
-# dd = torch.concat([fake, label], 0)
-# cc = torch.cat([label, fake])
-# print(dd.shape, cc.shape)
-# print(dd)
-# print(cc)
-#
-# idx = torch.randperm(dd.shape[0])
-# id = torch.randperm(cc.shape[0])
-# t = dd[idx].view(dd.size())
-# tt = cc[id].view(cc.size())
-# print(t)
-# print(tt)
+def noise(size):
+    """
+    Generates a 1-d vector of gaussian sampled random values
+    """
+    return torch.randn(size, 100)
+
+def images_to_vectors(images):
+    """
+    Flatten the image into a vector
+    """
+    return images.view(images.size(0), 784)
+
+def vectors_to_images(vectors):
+    """
+    Convert the vector into an image
+    """
+    return vectors.view(vectors.size(0), 1, 28, 28)
+
+def ones_target(size):
+    """
+    Tensor containing ones, with shape = size
+    """
+    return torch.ones(size, 1)
+
+def zeros_target(size):
+    """
+    Tensor containing zeros, with shape = size
+    """
+    return torch.zeros(size, 1)
