@@ -18,9 +18,11 @@ class FFLinearLayer(nn.Linear):
     :param bias: whether to use the bias or not
     """
 
-    def __init__(self, in_features, out_features, num_epoch=1000, threshold=2.0, device="cuda", bias=True):
+    def __init__(self, in_features, out_features, act, slope=0.2, num_epoch=1000, threshold=2.0, device="cuda", bias=True):
         super(FFLinearLayer, self).__init__(in_features, out_features, bias, device)
-        self.relu = nn.ReLU()
+
+        # self.relu = nn.ReLU()
+        self.activation = act(negative_slope=slope) if act.__name__ == "LeakyReLU" else act()
         self.opti = torch.optim.Adam(self.parameters(), lr=0.03)
         self.num_epoch = num_epoch
         self.threshold = threshold
@@ -38,7 +40,7 @@ class FFLinearLayer(nn.Linear):
         # print(x_.shape, self.weight.shape, self.weight.T.shape, self.bias.shape, self.bias.unsqueeze(0).shape,
         #       self.bias.unsqueeze(0).T.shape)
 
-        return self.relu(torch.mm(x_, self.weight.T) + self.bias.unsqueeze(0))
+        return self.activation(torch.mm(x_, self.weight.T) + self.bias.unsqueeze(0))
         # return self.relu(torch.mm(x_, self.weight) + self.bias.view(1, -1))
 
     # @staticmethod
