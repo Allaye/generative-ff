@@ -1,39 +1,24 @@
 import cv2, random
 import torch
 import wandb
-from discriminators_ff import *
 from utils import *
-from dataloader import CustomDataset
-from generator_ff import *
+from dataloader import mnist_data
 
 #
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
-#     transform = Compose([
-#         ToTensor(),
-#         Normalize((0.1307,), (0.3081,)),
-#         Lambda(lambda x: torch.flatten(x))])
-#
-#     train_loader = DataLoader(
-#         MNIST('./data/', train=True,
-#               download=True,
-#               transform=transform),
-#         batch_size=train_batch_size, shuffle=True)
-#
-#     test_loader = DataLoader(
-#         MNIST('./data/', train=False,
-#               download=True,
-#               transform=transform),
-#         batch_size=test_batch_size, shuffle=False)
-#
-#     return train_loader, test_loader
-#
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 if __name__ == "__main__":
     torch.manual_seed(1234)
+    # load and prep the data
+    data = mnist_data()
+    data_loader = torch.utils.data.DataLoader(data, batch_size=100, shuffle=True)
+    # Num batches
+    num_batches = len(data_loader)
+
+
     dataset = CustomDataset('data/facades/test/')
     dataloader = dataset.load_data(dataset, batch_size=5, shuffle=True)
     generator = FFConvGenerator(in_channels=3, out_channels=64)

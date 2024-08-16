@@ -61,9 +61,9 @@ def mnist_data():
          ])
     out_dir = './dataset'
     return datasets.MNIST(root=out_dir, train=True, transform=compose, download=True)
-# Load data
-data = mnist_data()
-# Create loader with data, so that we can iterate over it
+# # Load data
+# data = mnist_data()
+# # Create loader with data, so that we can iterate over it
 data_loader = torch.utils.data.DataLoader(data, batch_size=100, shuffle=True)
 # Num batches
 num_batches = len(data_loader)

@@ -76,7 +76,7 @@ class ConvDiscriminator(nn.Module):
                 goodness += [encoded.pow(2).mean(1)]
                 # goodness += [torch.reshape(encoded, (encoded.shape[0], -1)).pow(2).mean(1)]
                 # print('goodness:', len(goodness), goodness[idx].shape)
-                # print('sum goodness:', sum(goodness))
+                # print('sum goodness:', sum(goodness)),
                 encoded = encoded.reshape(shape)
             goodness_score_per_label += [sum(goodness).unsqueeze(1)]
             # print('goodness_score_per_label:', len(goodness_score_per_label))
